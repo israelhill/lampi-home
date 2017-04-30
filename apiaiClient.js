@@ -5,28 +5,27 @@ var twilioClient = require('./twilioClient');
 var lampiClient = require('./lampi');
 var schedule = require('node-schedule');
 var moment = require('moment');
+var twilio = require('twilio');
 
 exports.fulfillGoogleHomeRequest = function(data, res) {
     console.log("Fulfilling Api.Ai request...");
     var action = data.result.action;
-    doAction({'action': action, 'data': data, 'phoneNumber': null, 'res': res});
+    doAction({'action': action, 'data': data, 'res': res, 'agent': 'google'});
 }
 
-exports.fulfillSmsRequest = function(message, sender) {
+exports.fulfillSmsRequest = function(message, sender, res) {
     var request = client.textRequest(message, {
-        sessionId: '33'
+        sessionId: '<33>'
     });
 
     request.on('response', function(response) {
-        console.log(response);
-        parseResponseAndKickoffAction(response, sender);
+        parseResponseAndKickoffAction(response, sender, res);
     });
 
     request.on('error', function(error) {
         console.log(error);
         twilioClient.sendSms(sender, 'Sorry an error occured. Please try your request again.');
     });
-
     request.end();
 }
 
@@ -34,35 +33,34 @@ function doAction(obj) {
     var action = obj.action;
     var data = obj.data;
     var res = obj.res;
-    var phoneNumber = obj.phoneNumber;
     var speech = data.result.fulfillment.speech;
+    var agent = obj.agent;
     console.log("Performing action: ", action);
     console.log(data);
-
     switch(action) {
         case 'setSpecificBrightnessPercentage':
             var brightness = data.result.parameters.item;
             var brightnessDecimal = convertBrightnessToDecimal(brightness);
             console.log('Brightness: ', brightnessDecimal);
             lampiClient.setBrightness(brightnessDecimal);
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'decreaseBrightness':
             lampiClient.decreaseBrightness();
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'increaseBrightness':
             lampiClient.increaseBrightness();
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'setColor':
             var color = data.result.parameters.item;
             lampiClient.setColor(color);
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'delayedPowerOn':
             var time = data.result.parameters.item;
@@ -72,8 +70,8 @@ function doAction(obj) {
                 console.log('Executing Job: POWER ON');
                 lampiClient.setPower(true);
             });
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'delayedPowerOff':
             var time = data.result.parameters.item;
@@ -83,36 +81,40 @@ function doAction(obj) {
                 console.log('Executing Job: POWER OFF');
                 lampiClient.setPower(false);
             });
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'turnOff':
             lampiClient.setPower(false);
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         case 'turnOn':
             lampiClient.setPower(true);
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent);
             break;
         default:
             console.log('Action not recognized');
-            buildAndSendGoogleHomeResponse(speech, res);
-            sendTwilioResponse(speech, phoneNumber);
+            buildAndSendGoogleHomeResponse(speech, res, agent);
+            sendTwilioResponse(speech, res, agent)
             break;
     }
 }
 
-function buildAndSendGoogleHomeResponse(speech, res) {
-    if(res !== null) {
+function buildAndSendGoogleHomeResponse(speech, res, agent) {
+    if(agent === 'google') {
         buildAndSendApiAiResponse(speech, res);
     }
 }
 
-function sendTwilioResponse(speech, phoneNumber) {
-    if(phoneNumber !== null) {
-        twilioClient.sendSms(phoneNumber, speech);
+function sendTwilioResponse(speech, res, agent) {
+    if(agent == 'twilio') {
+        console.log("******* Inside twilio response function **********");
+        // respond to twilio using twiml
+        var twimlResponse = twilio.TwimlResponse();
+        twimlResponse.message(speech);
+        res.send(twimlResponse.toString());
     }
 }
 
@@ -129,10 +131,7 @@ function buildAndSendApiAiResponse(speech, res) {
     res.json(data);
 }
 
-function parseResponseAndKickoffAction(response, phoneNumber) {
+function parseResponseAndKickoffAction(response, res) {
     var action = response.result.action;
-    // remove plus sign from phone number
-    var cleanPhoneNumber = phoneNumber.replace(/\+/g, "");
-    console.log("SMS from: ", cleanPhoneNumber);
-    doAction({'action': action, 'data': response, 'phoneNumber': phoneNumber, 'res': null});
+    doAction({'action': action, 'data': response, 'res': res, 'agent': 'twilio'});
 };

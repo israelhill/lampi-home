@@ -27,7 +27,6 @@ app.post('/google_home_message', json_body_parser, function(req, res) {
     if(typeof req.body.originalRequest === 'undefined') {
         // this request is from sms... ignore it. It is already being handles by twilio endpoint
         console.log('Webhook request from SMS... ignoring');
-        // apiaiClient.fulfillGoogleHomeRequest(req.body, res);
     }
     else if(req.body.originalRequest.source === 'google') {
         console.log('Request from Google Home');
@@ -40,12 +39,7 @@ app.post('/sms_message', function(req, res) {
     console.log("Received a Message From User");
     var message = req.body.Body;
     var senderPhoneNumber = req.body.From;
-    apiaiClient.fulfillSmsRequest(message, senderPhoneNumber);
-    // respond to twilio using twiml
-    var twimlResponse = twilio.TwimlResponse();
-    twimlResponse.message(" ");
-    res.writeHead(200, {'Content-Type': 'text/xml'});
-    res.end(twimlResponse.toString());
+    apiaiClient.fulfillSmsRequest(message, res);
 });
 
 
