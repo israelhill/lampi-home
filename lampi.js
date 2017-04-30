@@ -58,28 +58,36 @@ client.on('error', function(message){
     client.end();
 });
 
-function sendMessage() {
+function sendStateToLamp() {
     var msg = JSON.stringify(lampState);
     client.publish(setConfigTopic, msg, {qos: 2});
 }
 
 exports.setBrightness = function(brightness) {
     lampState.brightness = brightness;
-    sendMessage();
+    sendStateToLamp();
 }
 
-exports.setHue = function(hue) {
-    lampState.color.h = hue;
-    sendMessage();
-}
+exports.setColor = function(color) {
 
-exports.setSaturation = function(saturation) {
-    lampState.color.s = saturation;
-    sendMessage();
 }
 
 exports.setPower = function(power) {
     lampState.on = power;
-    sendMessage();
+    sendStateToLamp();
+}
+
+exports.decreaeBrightness = function() {
+    var currentBrightness = lampState.brightness;
+    var newBrightness = (currentBrightness - 0.3 > 0) ? (currentBrightness - 0.3) : 0.1;
+    lampState.brightness = newBrightness;
+    sendStateToLamp();
+}
+
+exports.increaeBrightness = function() {
+    var currentBrightness = lampState.brightness;
+    var newBrightness = (currentBrightness + 0.3 < 1) ? (currentBrightness + 0.3) : 1;
+    lampState.brightness = newBrightness;
+    sendStateToLamp();
 }
 

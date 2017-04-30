@@ -31,17 +31,42 @@ exports.fulfillSmsRequest = function(message, sender) {
 function doGoogleHomeAction(action, data, res) {
     console.log("Performing action: ", action);
     console.log(data);
+    var speech = data.result.fulfillment.speech;
     switch(action) {
         case 'setSpecificBrightnessPercentage':
             var brightness = data.result.parameters.item;
-            brightness = brightness.replace(/%/g, "");
-            var brightnessNumber = parseInt(brightness)/100;
-            var speech = data.result.fulfillment.speech;
-            console.log('Brightness: ', brightnessNumber);
+            var brightnessDecimal = convertBrightnessToDecimal(brightness);
+            console.log('Brightness: ', brightnessDecimal);
             lampiClient.setBrightness(brightnessNumber);
             buildAndSendApiAiResponse(speech, res);
             break;
+        case 'decreaseBrightness':
+            lampiClient.decreaseBrightness();
+            buildAndSendApiAiResponse(speech, res);
+            break;
+        case 'increaseBrightness':
+            lampiClient.increaseBrightness();
+            buildAndSendApiAiResponse(speech, res);
+            break;
+        case 'setColor':
+            break;
+        case 'delayedPowerOn':
+            break;
+        case 'turnOff':
+            lampiClient.setPower(false);
+            buildAndSendApiAiResponse(speech, res);
+            break;
+        case 'turnOn':
+            lampiClient.setPower(true);
+            buildAndSendApiAiResponse(speech, res);
+            break;
     }
+}
+
+function convertBrightnessToDecimal(brightness) {
+    brightness = brightness.replace(/%/g, "");
+    var brightnessDecimal = parseInt(brightness)/100;
+    return brightnessDecimal;
 }
 
 function doTwilioAction(action) {
