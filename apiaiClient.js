@@ -7,7 +7,7 @@ var lampiClient = require('./lampi');
 exports.fulfillGoogleHomeRequest = function(data, res) {
     console.log("Fulfilling Api.Ai request...");
     var action = data.result.action;
-    doWebhookAction(action, data, res);
+    doGoogleHomeAction(action, data, res);
 }
 
 exports.fulfillSmsRequest = function(message, sender) {
@@ -30,12 +30,15 @@ exports.fulfillSmsRequest = function(message, sender) {
 
 function doGoogleHomeAction(action, data, res) {
     console.log("Performing action: ", action);
+    console.log(data);
     switch(action) {
-        case 'setSpecificBrightness':
+        case 'setSpecificBrightnessPercentage':
             var brightness = data.result.parameters.item;
-            console.log('Brightness: ', brightness);
-            var speech = data.fulfillment.speech;
-            lampiClient.setBrightness(brightness);
+            brightness = brightness.replace(/%/g, "");
+            var brightnessNumber = parseInt(brightness)/100;
+            var speech = data.result.fulfillment.speech;
+            console.log('Brightness: ', brightnessNumber);
+            lampiClient.setBrightness(brightnessNumber);
             buildAndSendApiAiResponse(speech, res);
             break;
     }

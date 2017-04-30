@@ -6,9 +6,9 @@ var https = require('https');
 var fs = require('fs');
 
 var options = {
-    ca: fs.readFileSync('/home/ubuntu/lampi_webhook.ca-bundle'),
-    cert: fs.readFileSync('/home/ubuntu/lampi_webhook.crt'),
-    key: fs.readFileSync('/home/ubuntu/lampi_webhook.key')
+    ca: fs.readFileSync('/home/israel/inventarium_me.ca-bundle'),
+    cert: fs.readFileSync('/home/israel/inventarium_me.crt'),
+    key: fs.readFileSync('/home/israel/inventarium_me.key')
 };
 
 // initialize express server
@@ -27,10 +27,11 @@ app.post('/google_home_message', json_body_parser, function(req, res) {
     if(typeof req.body.originalRequest === 'undefined') {
         // this request is from sms... ignore it. It is already being handles by twilio endpoint
         console.log('Webhook request from SMS... ignoring');
+        apiaiClient.fulfillGoogleHomeRequest(req.body, res);
     }
     else if(req.body.originalRequest.source === 'google') {
         console.log('Request from Google Home');
-        apiaiClient.fulfillRequest(req.body, res);
+        apiaiClient.fulfillGoogleHomeRequest(req.body, res);
     }
 });
 

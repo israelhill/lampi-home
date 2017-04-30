@@ -40,16 +40,17 @@ var lampState = {
 
 
 client.on('connect', function (err) {
-    console.log(err);
     console.log('MQTT: Connecting to host');
     client.subscribe(lampChangedTopic);
     console.log('MQTT: Subscribed to ', lampChangedTopic);
-    // sendTestMessage();
 });
 
 client.on('message', function (topic, message) {
     console.log('MQTT: Received a message');
     console.log('MQTT Message: ', message.toString());
+    var currentState = JSON.parse(message.toString());
+    lampState = currentState;
+    console.log("Updated lampState: ", lampState);
 });
 
 client.on('error', function(message){
