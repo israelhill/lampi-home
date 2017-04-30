@@ -9,7 +9,7 @@ var moment = require('moment');
 exports.fulfillGoogleHomeRequest = function(data, res) {
     console.log("Fulfilling Api.Ai request...");
     var action = data.result.action;
-    doGoogleHomeAction(action, data, res);
+    doAction({'action': action, 'data': data, 'phoneNumber': null, 'res': res});
 }
 
 exports.fulfillSmsRequest = function(message, sender) {
@@ -24,36 +24,45 @@ exports.fulfillSmsRequest = function(message, sender) {
 
     request.on('error', function(error) {
         console.log(error);
-        // send error text
+        twilioClient.sendSms(sender, 'Sorry an error occured. Please try your request again.');
     });
 
     request.end();
 }
 
-function doGoogleHomeAction(action, data, res) {
+function doAction(obj) {
+    var action = obj.action;
+    var data = obj.data;
+    var res = obj.res;
+    var phoneNumber = obj.phoneNumber;
+    var speech = data.result.fulfillment.speech;
     console.log("Performing action: ", action);
     console.log(data);
-    var speech = data.result.fulfillment.speech;
+
     switch(action) {
         case 'setSpecificBrightnessPercentage':
             var brightness = data.result.parameters.item;
             var brightnessDecimal = convertBrightnessToDecimal(brightness);
             console.log('Brightness: ', brightnessDecimal);
             lampiClient.setBrightness(brightnessDecimal);
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'decreaseBrightness':
             lampiClient.decreaseBrightness();
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'increaseBrightness':
             lampiClient.increaseBrightness();
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'setColor':
             var color = data.result.parameters.item;
             lampiClient.setColor(color);
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'delayedPowerOn':
             var time = data.result.parameters.item;
@@ -63,7 +72,8 @@ function doGoogleHomeAction(action, data, res) {
                 console.log('Executing Job: POWER ON');
                 lampiClient.setPower(true);
             });
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'delayedPowerOff':
             var time = data.result.parameters.item;
@@ -73,16 +83,36 @@ function doGoogleHomeAction(action, data, res) {
                 console.log('Executing Job: POWER OFF');
                 lampiClient.setPower(false);
             });
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'turnOff':
             lampiClient.setPower(false);
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
         case 'turnOn':
             lampiClient.setPower(true);
-            buildAndSendApiAiResponse(speech, res);
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
             break;
+        default:
+            console.log('Action not recognized');
+            buildAndSendGoogleHomeResponse(speech, res);
+            sendTwilioResponse(speech, phoneNumber);
+            break;
+    }
+}
+
+function buildAndSendGoogleHomeResponse(speech, res) {
+    if(res !== null) {
+        buildAndSendApiAiResponse(speech, res);
+    }
+}
+
+function sendTwilioResponse(speech, phoneNumber) {
+    if(phoneNumber !== null) {
+        twilioClient.sendSms(phoneNumber, speech);
     }
 }
 
@@ -90,12 +120,6 @@ function convertBrightnessToDecimal(brightness) {
     brightness = brightness.replace(/%/g, "");
     var brightnessDecimal = parseInt(brightness)/100;
     return brightnessDecimal;
-}
-
-function doTwilioAction(action) {
-    switch(action) {
-        // intents here
-    }
 }
 
 function buildAndSendApiAiResponse(speech, res) {
@@ -106,14 +130,9 @@ function buildAndSendApiAiResponse(speech, res) {
 }
 
 function parseResponseAndKickoffAction(response, phoneNumber) {
-    var responseResult = response.result;
-    var responseSpeech = responseResult.fulfillment.speech;
-    var responseItem = responseResult.parameters.item;
-    var action = responseResult.action;
+    var action = response.result.action;
     // remove plus sign from phone number
     var cleanPhoneNumber = phoneNumber.replace(/\+/g, "");
     console.log("SMS from: ", cleanPhoneNumber);
-
-    twilioClient.sendSms(cleanPhoneNumber, responseSpeech);
-    doTwilioAction(action);
+    doAction({'action': action, 'data': response, 'phoneNumber': phoneNumber, 'res': null});
 };
