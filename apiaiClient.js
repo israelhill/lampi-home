@@ -3,6 +3,7 @@ var config = require('./config');
 var client = apiai(config.apiaiToken);
 var twilioClient = require('./twilioClient');
 var lampiClient = require('./lampi');
+var schedule = require('node-schedule');
 
 exports.fulfillGoogleHomeRequest = function(data, res) {
     console.log("Fulfilling Api.Ai request...");
@@ -37,7 +38,7 @@ function doGoogleHomeAction(action, data, res) {
             var brightness = data.result.parameters.item;
             var brightnessDecimal = convertBrightnessToDecimal(brightness);
             console.log('Brightness: ', brightnessDecimal);
-            lampiClient.setBrightness(brightnessNumber);
+            lampiClient.setBrightness(brightnessDecimal);
             buildAndSendApiAiResponse(speech, res);
             break;
         case 'decreaseBrightness':
@@ -49,6 +50,9 @@ function doGoogleHomeAction(action, data, res) {
             buildAndSendApiAiResponse(speech, res);
             break;
         case 'setColor':
+            var color = data.result.parameters.item;
+            lampiClient.setColor(color);
+            buildAndSendApiAiResponse(speech, res);
             break;
         case 'delayedPowerOn':
             break;

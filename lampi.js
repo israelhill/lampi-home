@@ -8,6 +8,7 @@ var host = 'wss://ec2-52-11-88-168.us-west-2.compute.amazonaws.com:50002';
 var KEY = fs.readFileSync('/etc/keys/client.key');
 var CERT = fs.readFileSync('/etc/keys/client.crt');
 var CAfile = fs.readFileSync('/etc/keys/ca.crt');
+var Color = require('color');
 
 
 // var clientId = 'mqttjs_' + Math.random().toString(16).substr(2, 8);
@@ -69,7 +70,18 @@ exports.setBrightness = function(brightness) {
 }
 
 exports.setColor = function(color) {
-
+    color = color.toLowerCase();
+    try {
+        var newColor = Color(color);
+        var newColorHSV = newColor.hsv();
+        lampState.color.h = newColorHSV.color[0]/360;
+        lampState.color.s = newColorHSV.color[1]/100;
+        console.log("Setting hue and saturation: ", newColorHSV.color[0], newColorHSV.color[1]);
+        sendStateToLamp();
+    }
+    catch(e) {
+        console.log("Could not find color: ", color);
+    }
 }
 
 exports.setPower = function(power) {
@@ -77,14 +89,14 @@ exports.setPower = function(power) {
     sendStateToLamp();
 }
 
-exports.decreaeBrightness = function() {
+exports.decreaseBrightness = function() {
     var currentBrightness = lampState.brightness;
     var newBrightness = (currentBrightness - 0.3 > 0) ? (currentBrightness - 0.3) : 0.1;
     lampState.brightness = newBrightness;
     sendStateToLamp();
 }
 
-exports.increaeBrightness = function() {
+exports.increaseBrightness = function() {
     var currentBrightness = lampState.brightness;
     var newBrightness = (currentBrightness + 0.3 < 1) ? (currentBrightness + 0.3) : 1;
     lampState.brightness = newBrightness;
