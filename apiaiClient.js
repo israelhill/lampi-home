@@ -4,6 +4,7 @@ var client = apiai(config.apiaiToken);
 var twilioClient = require('./twilioClient');
 var lampiClient = require('./lampi');
 var schedule = require('node-schedule');
+var moment = require('moment');
 
 exports.fulfillGoogleHomeRequest = function(data, res) {
     console.log("Fulfilling Api.Ai request...");
@@ -55,6 +56,24 @@ function doGoogleHomeAction(action, data, res) {
             buildAndSendApiAiResponse(speech, res);
             break;
         case 'delayedPowerOn':
+            var time = data.result.parameters.item;
+            var timeUnit = data.result.parameters.item2;
+            var jobExecutionTime = moment().add(time, timeUnit);
+            var job = schedule.scheduleJob(jobExecutionTime.toDate(), function(){
+                console.log('Executing Job: POWER ON');
+                lampiClient.setPower(true);
+            });
+            buildAndSendApiAiResponse(speech, res);
+            break;
+        case 'delayedPowerOff':
+            var time = data.result.parameters.item;
+            var timeUnit = data.result.parameters.item2;
+            var jobExecutionTime = moment().add(time, timeUnit);
+            var job = schedule.scheduleJob(jobExecutionTime.toDate(), function(){
+                console.log('Executing Job: POWER OFF');
+                lampiClient.setPower(false);
+            });
+            buildAndSendApiAiResponse(speech, res);
             break;
         case 'turnOff':
             lampiClient.setPower(false);
