@@ -57,8 +57,28 @@ client.on('error', function(message){
     client.end();
 });
 
-exports.sendMessage = function(state) {
+function sendMessage() {
     var msg = JSON.stringify(lampState);
     client.publish(setConfigTopic, msg, {qos: 2});
+}
+
+exports.setBrightness = function(brightness) {
+    lampState.brightness = brightness;
+    sendMessage();
+}
+
+exports.setHue = function(hue) {
+    lampState.color.h = hue;
+    sendMessage();
+}
+
+exports.setSaturation = function(saturation) {
+    lampState.color.s = saturation;
+    sendMessage();
+}
+
+exports.setPower = function(power) {
+    lampState.on = power;
+    sendMessage();
 }
 
